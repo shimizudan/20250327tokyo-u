@@ -285,10 +285,10 @@ using Primes,Printf
 
 f(a::Int, x::Int) = x^2 + x - a
 
-function N(a, n)
+function N(a)
     k = 0
-    for i = 1:n
-        val = f(a, i)
+    for n = 1:a
+        val = f(a, n)
         if val ≥ 0 && isqrt(val)^2 == val
             k += 1
         end
@@ -296,13 +296,13 @@ function N(a, n)
     return k
 end
 
-println(" a   | N(a,1000) | 4a+1   | isprime?")
-println("-----|-----------|--------|----------")
+println(" a   | N(a) | 4a+1 | isprime?")
+println("-----|------|------|----------")
 for a = 1:120
-    count = N(a, 1000)
+    count = N(a)
     val = 4a + 1
     is_p = count == 1 ? string(isprime(val)) : ""
-    @printf("%4d | %9d | %6d | %s\n", a, count, val, is_p)
+    @printf("%4d | %4d | %4d | %s\n", a, count, val, is_p)
 end
 ```
   
@@ -366,8 +366,8 @@ function valid_permutations(n)
     return results
 end
 
-# 実行例：n = 10 のとき
-valids = valid_permutations(10)
+# 実行例：n = 4 のとき
+valid_permutations(4)
 ```
 
 
