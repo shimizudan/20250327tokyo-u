@@ -1,0 +1,472 @@
+---
+title: "大学入試とJulia言語（JuliaTokai #21）"
+author: "清水　団　Dan Shimizu ([@dannchu](https://twitter.com/dannchu)) "
+date: "3/30/2025"
+jupyter: julia-1.11
+---
+# はじめに
+
+
+
+
+ ![](https://shimizudan.github.io/20240225-2sundaymath/pic29.png)
+
+{{< pagebreak >}}
+
+
+# 自己紹介
+
+- 清水　団（しみず・だん）
+- 東京都板橋区 城北中学校・高等学校 に数学科の教員として勤務
+- 2021年度より教頭です。
+
+
+{{< pagebreak >}}
+
+# Julia言語のについて
+
+ [https://julialang.org](https://julialang.org)
+
+ ![](https://shimizudan.github.io/20240225-2sundaymath/pic24.png)
+
+Juliaは統計処理や科学技術計算、機械学習に強いプログラミング言語といわれています。 例えばStatsBase.jlやDistributions.jlなどのパッケージを使用すると、統計モデリングや仮説検定、回帰分析、時系列分析などの統計処理を行えます。
+
+
+{{< pagebreak >}}
+
+# 東京大(理系）2025・数学
+
+2025年2月25日に行われた東京大学の入学試験の理系の数学の問題を**Julia言語**を用いて，「解く」というよりも「考えて」みました。コードを書くときはできるだけ，`julia`のパッケージを利用しました。
+
+
+また，[quarto](https://quarto.org)というパブリッシング・システムを用いてWebページを作成しました。基本`Markdown`で，コードの読み込みも容易です。今回は利用していませんが，新たな数式処理の[typst](https://typst.app)も実装可能です。
+
+
+{{< pagebreak >}}
+
+## 第1問
+
+::: {.callout-note}
+## 第1問・問題
+
+![](r01.png)
+
+:::
+
+
+::: {.callout-tip}
+## julia言語
+
+(1) シンボリックパッケージ`Symbolics.jl`を利用
+
+(2) 図示・積分・微分
+
+    - 図示は描画パッケージ`Plots.jl`を利用
+    - 積分は数値積分パッケージ`QuadGK.jl`を利用
+    - 微分は自動微分パッケージ`Zygote.jl`を利用
+
+(3) 多項式パッケージ`Polynomials.jl`を利用
+
+
+:::
+
+
+```{julia}
+using Symbolics
+
+@variables t;
+
+A,B,C,D = [0,0],[0,1],[1,1],[1,0];
+
+f(X,Y,t) = (1-t)*X + t*Y
+
+P(t) = f(A,B,t)
+Q(t) = f(B,C,t)
+R(t) = f(C,D,t)
+S(t) = f(P(t),Q(t),t)
+T(t) = f(Q(t),R(t),t)
+U(t) = f(S(t),T(t),t)
+expand.(U(t))
+
+
+```
+
+```{julia}
+using Plots
+
+plot(t->U(t)[1], t->U(t)[2], 0, 1, 
+    aspectratio = true ,
+    line = 4, leg = false, fill = (0, :orange))
+
+
+```
+
+```{julia}
+using QuadGK,Zygote
+
+x(t) = U(t)[1]
+y(t) = U(t)[2]
+
+quadgk(t->y(t) * x'(t), 0, 1)
+
+
+```
+
+
+```{julia}
+
+l(a) = quadgk(t -> sqrt(x'(t)^2 + y'(t)^2) , 0, a)[1]
+
+X =0:.05:1
+Y = l.(X)
+
+using Polynomials
+
+println(fit(X,Y,1))
+println(fit(X,Y,2))
+println(fit(X,Y,3))
+
+plot(fit(X,Y,1),xlim=(0,1),label="fit#3")
+plot!(fit(X,Y,2),xlim=(0,1),label="fit#2")
+plot!(fit(X,Y,3),xlim=(0,1),label="fit#3")
+scatter!(X,Y,label="data")
+
+```
+
+{{< pagebreak >}}
+
+
+
+## 第2問
+
+::: {.callout-note}
+## 第2問・問題
+
+
+
+![](r02.png)
+
+:::
+
+
+::: {.callout-tip}
+## julia言語
+
+- 描画パッケージ `Plots.jl` を利用
+- 数値積分パッケージ `QuadGK.jl`を利用
+- n=10^6くらいで計算してみる
+
+:::
+
+
+```{julia}
+using Plots
+
+plot(log,xlim=(0,5),label="log x")
+plot!(x->x-1,xlim=(0,5),label="x-1")
+
+
+```
+
+
+```{julia}
+using QuadGK 
+
+f(n) = quadgk(x -> n*log((1+x^(1/n))/2), 1, 2)[1]
+
+@show f(10^6);
+@show log(2) - 1/2;
+
+```
+
+
+
+{{< pagebreak >}}
+
+
+## 第3問
+
+
+::: {.callout-note}
+## 第3問・問題
+
+
+![](r03.png)
+:::
+
+
+::: {.callout-tip}
+## Julia言語
+- 描画パッケージ `Plots.jl` を利用（アニメーション）
+- 最小値パッケージ` Optim.jl`を利用
+
+- 参考図（`typst`で作成）
+
+    ![](zu03.png)
+
+:::
+
+
+```{julia}
+
+using Plots
+S(a,b,θ) =  a*b*sin(π/6)+b^2 * sin(θ) * cos(θ)+a^2 * sin(π/6- θ)*cos(π/6- θ)
+
+# アニメーションの作成
+@gif for b in 1:0.005:2
+    plot(x -> S(1, b, x), 0, π/6, label =false, 
+    title = "S(1, $(round(b,digits=1)), θ)", legend = :topright)
+end every 1
+
+```
+
+```{julia}
+using Printf
+using Optim
+
+# 関数 S(a, b, θ)
+S(a, b, θ) = a*b*sin(π/6) + b^2 * sin(θ)*cos(θ) + a^2 * sin(π/6 - θ)*cos(π/6 - θ)
+
+# θ ∈ [0, π/6] の範囲で最大値を求める関数
+function max_S(a, b)
+    result = Optim.optimize(θ -> -S(a, b, θ), 0.0, π/6)  # 最大化なのでマイナスを最小化
+    θ_max = Optim.minimizer(result)
+    S_max = S(a, b, θ_max)
+    return θ_max, S_max
+end
+
+# 各 a, b の組に対して計算
+a = 1
+b_list = [1+.1*i for i=0:10]
+
+for b in b_list
+    θ, Sval = max_S(a, b)
+    @printf "a=1, b=%.4f → θ=%.4f, max S=%.6f\n" b θ Sval
+end
+
+
+
+```
+
+```{julia}
+b_list = [1.4+.01*i for i=0:10]
+
+for b in b_list
+    θ, Sval = max_S(a, b)
+    @printf "a=1, b=%.4f → θ=%.4f, max S=%.6f\n" b θ Sval
+end
+```
+
+{{< pagebreak >}}
+
+
+## 第4問
+
+
+::: {.callout-note}
+## 第4問・問題
+
+
+![](r04.png)
+:::
+
+
+::: {.callout-tip}
+## Julia言語
+
+- 素数パッケージ `Primes.jl` を利用 
+
+:::
+
+
+ 
+```{julia}
+using Primes,Printf
+
+f(a::Int, x::Int) = x^2 + x - a
+
+function N(a, n)
+    k = 0
+    for i = 1:n
+        val = f(a, i)
+        if val ≥ 0 && isqrt(val)^2 == val
+            k += 1
+        end
+    end
+    return k
+end
+
+println(" a   | N(a,1000) | 4a+1   | isprime?")
+println("-----|-----------|--------|----------")
+for a = 1:120
+    count = N(a, 1000)
+    val = 4a + 1
+    is_p = count == 1 ? string(isprime(val)) : ""
+    @printf("%4d | %9d | %6d | %s\n", a, count, val, is_p)
+end
+```
+  
+
+
+{{< pagebreak >}}
+
+
+## 第5問
+
+
+::: {.callout-note}
+## 第5問・問題
+
+
+![](r05.png)
+
+:::
+
+
+::: {.callout-tip}
+## Julia言語
+
+- 組み合わせパッケージ `Combinatorics.jl` を利用 
+:::
+
+```{julia}
+using Combinatorics
+
+# 操作 T_i: i番目とi+1番目の値を比較し、左の方が大きければ入れ替える
+function apply_T!(perm, i)
+    if perm[i] > perm[i + 1]
+        perm[i], perm[i + 1] = perm[i + 1], perm[i]
+    end
+end
+
+# 1回の操作ループ：T₁～Tₙ₋₁ → Tₙ₋₁～T₁
+function perform_all_T!(perm)
+    n = length(perm)
+    for i in 1:n-1
+        apply_T!(perm, i)
+    end
+    for i in n-1:-1:1
+        apply_T!(perm, i)
+    end
+end
+
+# 並べ替え後に昇順になる初期順列を全て集める
+function valid_permutations(n)
+    target = collect(1:n)
+    results = []
+
+    for perm in permutations(1:n)
+        temp = collect(perm)
+        perform_all_T!(temp)
+        if temp == target
+            push!(results, perm)
+        end
+    end
+
+    return results
+end
+
+# 実行例：n = 10 のとき
+valids = valid_permutations(10)
+```
+
+
+
+```{julia}
+# 最初の10個の順列を表示
+for i in 1:10
+    println(valid_permutations(i)|>length)
+end
+```
+
+
+
+::: {.callout-tip}
+## OEIS
+
+[https://oeis.org/A006012](https://oeis.org/A006012)
+
+
+![](zu05.png)
+
+:::
+
+
+
+{{< pagebreak >}}
+
+## 第6問
+
+
+
+::: {.callout-note}
+## 第6問・問題
+
+
+
+![](r06.png)
+
+
+:::
+
+
+::: {.callout-tip}
+## Julia言語
+
+- 描画パッケージ `Plots.jl` を利用
+- 境界で最大・最小を取るのかな。
+
+:::
+
+
+
+
+
+```{julia}
+using Plots
+# 曲線C上の点を生成（z such that |z - 1/2| = 1/2）
+function generate_C(N=500)
+    θ = range(0, 2π, length=N)
+    return [1/2 + 1/2 * cis(t) for t in θ if abs(1/2 + 1/2 * cis(t)) > 1e-6]  # 原点を除く
+end
+
+plot(1 ./generate_C(),aspectratio=true,
+xlim=(-2,2),ylim=(-2,2),label="1/z",legend=false)
+```
+
+
+
+```{julia}
+
+# (2) α ≠ β に対して 1/α^2 + 1/β^2 のとる範囲を図示
+function plot_sum_inv_squares()
+    C = generate_C(10^3)
+    points = ComplexF64[]
+    for _ = 1:10^5
+        α, β = rand(C), rand(C)
+        push!(points, 1/α^2 + 1/β^2)
+    end
+    scatter(points,aspectratio=true,
+    xlim=(-3,3),ylim=(-3,3),)
+end
+
+plot_sum_inv_squares()
+```
+
+
+```{julia}
+# (3) C上にない点を使って Re(1/γ) の最大・最小を求める
+# まあ，境界でmax,minを取るとしましょう。
+C  = generate_C(1000)
+f(z) = 2/z^2
+points = f.(C)
+w = 1 ./ points
+println("(3) Re(1/γ) の最大:", maximum(real.(w)))
+println("(3) Re(1/γ) の最小:", minimum(real.(w)))
+plot(w,aspectratio=true,label="1/γ")
+```
+
+
+
+{{< pagebreak >}}
+
