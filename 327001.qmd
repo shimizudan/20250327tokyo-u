@@ -353,6 +353,34 @@ end
 ::: 
 
 ```js
+using Primes
+
+f(a::Int, x::Int) = x^2 + x - a
+
+for a = 1:100 , n = 1:100
+    val = f(a, n)
+    if val ≥ 0 && isqrt(val)^2 == val
+        println("f($a, $n) = $val, $(n≤a) ")
+    end
+end
+
+```
+
+```{julia}
+using Primes
+
+f(a::Int, x::Int) = x^2 + x - a
+
+for a = 1:100 , n = 1:100
+    val = f(a, n)
+    if val ≥ 0 && isqrt(val)^2 == val
+        println("f($a, $n) = $val, $(n≤a) ")
+    end
+end
+
+```
+
+```js
 using Primes,Printf
 
 f(a::Int, x::Int) = x^2 + x - a
